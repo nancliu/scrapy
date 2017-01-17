@@ -8,10 +8,13 @@ scrap stock data from snowball
 from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 import pandas.io.data as web
+import pandas as pd
+#from openpyxl import load_workbook 
 import datetime
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+import csv
 
-
+ff_s = pd.DataFrame()
 #Retrieves a list of stock details found on a page
 def getStockDetails_snowball(stockCode):
     headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20100101 Firefox/23.0'}  
@@ -26,17 +29,45 @@ def getStockDetails_snowball(stockCode):
     for sibling in bsObj.find("div",{"class":"stockQuote"}).div.next_siblings:
         print(sibling.get_text())
     
-def getStockDetails(stockCode):
+def getStockDetails(stockCode,start,end):
+    source = 'yahoo'
+    ff = web.DataReader(stockCode,source,start,end)
+    return ff
+
+def extractStocks(fromFile,toFile):
     pass
+    
+def getStocksbyList(tickerList):
+    start = datetime.datetime(2017,1,1)
+    end = datetime.date.today()
+    
+#    book =load_workbook('files\Stocks.xlsx')    #write append to a exist excel
+#    writer = pd.ExcelWriter('files\Stocks.xlsx',engine='openpyxl') 
+
+    writer = pd.ExcelWriter('files\Stocks.xlsx')
+    global ff_s
+    for ticker in tickerList:
+        ff = getStockDetails(ticker,start,end)
+        ff.to_excel(writer,ticker,encoding='utf-8')
         
-#getStockDetails("INTC")
+        #extract simple stock info
+        if len(ff_s)==0:
+            ff_s=ff[['Close']].copy()
+            ff_s['ratio']=
+        else:
+            ff1=ff[['Close']].copy()
+            ff_s=ff_s.join(ff1,lsuffix='_caller',rsuffix='_other')
+                      
+        print('-----get '+ticker+'------')
+    writer.save()
+    ff_s.columns=tickerList
+    writer = pd.ExcelWriter('files\Stocks_Simple.xlsx')
+    ff_s.to_excel(writer,encoding='utf-8')
+    writer.save()    
+
+    
 tickerList=['INTC','AMZN','MSFT','GOOG']
-start = datetime.datetime(2015,1,1)
-end = datetime.date.today()
-ticker= "INTC"
-f = web.DataReader(ticker,'yahoo',start,end)
-print(f)
-plt.plot(f['Close'])
-plt.title(ticker+' Closing Prices')
-plt.show()
+
+getStocksbyList(tickerList)
+
     
