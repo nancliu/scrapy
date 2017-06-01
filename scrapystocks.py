@@ -7,12 +7,12 @@ scrap stock data from snowball
 
 from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
-import pandas.io.data as web
+import pandas_datareader.data as web
 import pandas as pd
 #from openpyxl import load_workbook 
 import datetime
 #import matplotlib.pyplot as plt
-import csv
+#import csv
 
 ff_s = pd.DataFrame()
 #Retrieves a list of stock details found on a page
@@ -30,43 +30,58 @@ def getStockDetails_snowball(stockCode):
         print(sibling.get_text())
     
 def getStockDetails(stockCode,start,end):
-    source = 'yahoo'
+    source = 'google'
     ff = web.DataReader(stockCode,source,start,end)
-    return ff
+#     ff = web.DataReader('INTL','yahoo',start,end)
+#    print(stockCode)
+#    print(ff.head())
+    if source =='yahoo':
+        index = 'Adj Close'
+    elif source == 'google':
+        index ='Close'
+    
+    return ff,index
 
 def extractStocks(fromFile,toFile):
     pass
     
 def getStocksbyList(tickerList):
-    start = datetime.datetime(2017,1,1)
+
+    start = datetime.date(2016,1,1)
     end = datetime.date.today()
     
-#    book =load_workbook('files\Stocks.xlsx')    #write append to a exist excel
-#    writer = pd.ExcelWriter('files\Stocks.xlsx',engine='openpyxl') 
-
+    if start.month == end.month & start.year == end.year:
+        print('No need to update data.')
+        return
+    
     writer = pd.ExcelWriter('files\Stocks.xlsx')
     global ff_s
     for ticker in tickerList:
-        ff = getStockDetails(ticker,start,end)
+        ff,index = getStockDetails(ticker,start,end)
         ff.to_excel(writer,ticker,encoding='utf-8')
         
-        #extract simple stock info
+        #extract simple stock info,ff_s is a Dataframe
+        #extract one data every 21 days, so about 12 data from one year
         if len(ff_s)==0:
-            ff_s=ff[['Close']].copy()
-            ff_s['ratio']=
+            ff_s=ff[[index]].copy()[::21]
+            ff_s.columns=[ticker]
+            ff_s['r_'+ticker] = ff_s.pct_change()
         else:
-            ff1=ff[['Close']].copy()
-            ff_s=ff_s.join(ff1,lsuffix='_caller',rsuffix='_other')
-                      
+            ff1=ff[[index]].copy()[::21]
+            ff1.columns=[ticker]
+            ff1['r_'+ticker] = ff1.pct_change()
+            ff_s=ff_s.join(ff1)
+        
         print('-----get '+ticker+'------')
+#        print(ff_s.head())
     writer.save()
-    ff_s.columns=tickerList
+#    ff_s.columns=tickerList
     writer = pd.ExcelWriter('files\Stocks_Simple.xlsx')
     ff_s.to_excel(writer,encoding='utf-8')
     writer.save()    
 
-    
-tickerList=['INTC','AMZN','MSFT','GOOG']
+    #INTL
+tickerList=['AMZN','GOOG','MSFT','CTRP','VMW','JD','BABA']
 
 getStocksbyList(tickerList)
 
